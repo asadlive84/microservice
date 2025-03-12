@@ -1,0 +1,65 @@
+services:
+  payment:
+    build:
+      context: ./payment
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - ENV=development
+      - APPLICATION_PORT=3001
+      - DATA_SOURCE_URL=host=db user=root password=verysecretpass dbname=order port=5432 sslmode=disable TimeZone=Asia/Dhaka
+    networks:
+      - microservice_network
+  app:
+    build:
+      context: ./order
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # APPLICATION_PORT
+    environment:
+      - DATA_SOURCE_URL=host=db user=root password=verysecretpass dbname=order port=5432 sslmode=disable TimeZone=Asia/Dhaka
+      - APPLICATION_PORT=3000
+      - ENV=development
+      - PAYMENT_SERVICE_URL=payment:3001
+    depends_on:
+      db:
+        condition: service_healthy
+      payment:
+        condition: service_started
+    networks:
+      - microservice_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d order"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: verysecretpass
+      POSTGRES_DB: order
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
+    networks:
+      - microservice_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d order"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  microservice_network:
+    driver: bridge

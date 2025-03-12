@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: db
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: "root"
+            - name: POSTGRES_PASSWORD
+              value: "verysecretpass"
+            - name: POSTGRES_DB
+              value: "order"
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-storage
+      volumes:
+        - name: postgres-storage
+          emptyDir: {} # চাইলে PersistentVolume ব্যবহার করতে পারো
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  labels:
+    app: db  
+spec:
+  selector:
+    app: db  
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+
