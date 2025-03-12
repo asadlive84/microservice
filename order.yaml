@@ -13,6 +13,7 @@ spec:
     metadata:
       labels:
         app: order
+        service: order
     spec:
       # initContainers:
       #   - name: db-check
@@ -25,7 +26,7 @@ spec:
             - name: APPLICATION_PORT
               value: "3000"
             - name: PAYMENT_SERVICE_URL
-              value: "payment:3001"
+              value: "payment:30001"
             - name: DATA_SOURCE_URL
               value: "host=db user=root password=verysecretpass dbname=order port=5432 sslmode=disable TimeZone=Asia/Dhaka"
             - name: ENV
@@ -40,37 +41,16 @@ metadata:
   labels:
     service: order
 spec:
-  clusterIP: clusterIP
   selector:
     service: order
+  type: LoadBalancer   # Change to LoadBalancer for an external IP
   ports:
     - name: grpc
       port: 3000
       protocol: TCP
       targetPort: 3000
 
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/backend-protocol: GRPC
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    cert-manager.io/cluster-issuer: selfsigned-issuer
-  name: order
-spec:
-  rules:
-    - http:
-        paths:
-          - path: /order
-            pathType: Prefix
-            backend:
-              service:
-                name: order
-                port:
-                  number: 3000
-  tls:
-    - hosts:
-        - ingress.local
+
+
+
 
